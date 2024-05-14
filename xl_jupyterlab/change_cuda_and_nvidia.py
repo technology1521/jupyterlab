@@ -1,10 +1,10 @@
 import ipywidgets as widgets
-from IPython.display import display
 import subprocess
-import re
 import os
-# 创建一个下拉菜单让用户选择CUDA版本
-cuda_version_dropdown = widgets.Dropdown(
+
+
+def create_cuda_ui_components():
+    cuda_version_dropdown = widgets.Dropdown(
     options=[
         ('11.5.0', 'cuda_11.5.0_495.29.05_linux.run'),
         ('11.5.1', 'cuda_11.5.1_495.29.05_linux.run'),
@@ -28,36 +28,30 @@ cuda_version_dropdown = widgets.Dropdown(
     ],
     value='cuda_11.5.0_495.29.05_linux.run',
     description='CUDA版本:',
-)
+    )
 
-# 创建一个下拉菜单让用户选择是否安装NVIDIA驱动
-nvidia_driver_dropdown = widgets.Dropdown(
-    options=[
-        ('不安装', None),
-        ('NVIDIA 535.154.05', 'NVIDIA-Linux-x86_64-535.154.05.run'),
-        ('NVIDIA 550.54.14', 'NVIDIA-Linux-x86_64-550.54.14.run')
-    ],
-    value=None,
-    description='NVIDIA驱动:',
-)
-
-# 创建下载驱动规则的下拉菜单
-download_rule_dropdown = widgets.Dropdown(
-    options=[
-        ('总是', 'Always'),
-        ('本地', 'IfNotPresent')
-       
-    ],
-    value='IfNotPresent',  # 默认值
-    description='下载规则:',
-)
-
-base_url = "http://mirrors.chukk.cc:8866/cuda/"
-file_path = "/root/.bashrc"  # 文件路径
-
-# 创建一个按钮用于执行安装
-install_button = widgets.Button(description="安装CUDA和驱动")
-
+    # 创建一个下拉菜单让用户选择是否安装NVIDIA驱动
+    nvidia_driver_dropdown = widgets.Dropdown(
+        options=[
+            ('不安装', None),
+            ('NVIDIA 535.154.05', 'NVIDIA-Linux-x86_64-535.154.05.run'),
+            ('NVIDIA 550.54.14', 'NVIDIA-Linux-x86_64-550.54.14.run')
+        ],
+        value=None,
+        description='NVIDIA驱动:',
+    )
+    
+    # 创建下载驱动规则的下拉菜单
+    download_rule_dropdown = widgets.Dropdown(
+        options=[
+            ('总是', 'Always'),
+            ('本地', 'IfNotPresent')
+           
+        ],
+        value='IfNotPresent',  # 默认值
+        description='下载规则:',
+    )
+    return cuda_version_dropdown, nvidia_driver_dropdown, download_rule_dropdown
 def update_cuda_version(file_path, cuda_version):
     # 定义要替换或追加的行
     path_line = f"export PATH=/usr/local/cuda-{cuda_version}/bin:$PATH  \n\
@@ -111,37 +105,25 @@ def check_driver_present(driver_name):
     else:
         print(f"驱动文件 {driver_name} 不存在于 {driver_path}。")
         return False
-    
-    
-# 安装CUDA和NVIDIA驱动的函数
-def install_cuda_and_driver(b): 
-    cuda_version = cuda_version_dropdown.value
-    nvidia_driver = nvidia_driver_dropdown.value
-    download_rule = download_rule_dropdown.value
-    full_version_string = cuda_version_dropdown.value 
-    # 从完整的版本字符串中提取版本号部分（例如，'12.2.1'）
-    version_number_string = full_version_string.split('_')[1]  # 结果是 '12.2.1'
 
-# 从版本号字符串中提取前两位（例如，'12.2'）
+def install_cuda_and_driver(cuda_version, nvidia_driver, download_rule, base_url, file_path):
+    version_number_string = cuda_version.split('_')[1]  # 结果是 '12.2.1'
     major_minor_version = '.'.join(version_number_string.split('.')[:2])  # 结果是 '12.2'
-
-    # 安装CUDA
-   
     if download_rule == 'Always' or (download_rule == 'IfNotPresent' and not check_driver_present(cuda_version)):
-        print(f"开始下载CUDA {cuda_version_dropdown.label}...")
+        #print(f"开始下载CUDA {cuda_version_dropdown.label}...")
         cuda_install_command = f"wget {base_url}{cuda_version}"
         subprocess.run(cuda_install_command, shell=True, check=True)
     
     chmod_command = f"chmod +x {cuda_version}"
     subprocess.run(chmod_command, shell=True, check=True)
-    print(f"开始安装CUDA {cuda_version_dropdown.label}...")
+    #print(f"开始安装CUDA {cuda_version_dropdown.label}...")
     install_command = f"./{cuda_version} --silent --toolkit"
     subprocess.run(install_command, shell=True, check=True)
-    print(f"CUDA {cuda_version_dropdown.label} 安装完成。")
+    #print(f"CUDA {cuda_version_dropdown.label} 安装完成。")
                          
     update_cuda_version(file_path, major_minor_version)
-    source_command = f"source /root/.bashrc"
-    subprocess.run(source_command, shell=True, check=True)
+    #source_command = f"source /root/.bashrc"
+    #subprocess.run(source_command, shell=True, check=True)
    
 	# Source ~/.bashrc to apply changes immediately
     #subprocess.run(["source", f"/root/.bashrc"], shell=True, executable="/bin/bash")
@@ -149,19 +131,13 @@ def install_cuda_and_driver(b):
     # 如果用户选择了安装NVIDIA驱动
     if nvidia_driver:
         if download_rule == 'Always' or (download_rule == 'IfNotPresent' and not check_driver_present(nvidia_driver)):
-            print(f"开始下载NVIDIA驱动 {nvidia_driver_dropdown.label}...")
+            #print(f"开始下载NVIDIA驱动 {nvidia_driver_dropdown.label}...")
             driver_install_command = f"wget {base_url}{nvidia_driver}"
             subprocess.run(driver_install_command, shell=True, check=True)
         chmod_command = f"chmod +x {nvidia_driver}"
         subprocess.run(chmod_command, shell=True, check=True)
-        print(f"开始安装NVIDIA驱动 {cuda_version_dropdown.label}...")
+        #print(f"开始安装NVIDIA驱动 {cuda_version_dropdown.label}...")
         install_command = f"./{nvidia_driver} --no-questions --ui=none --dkms"
         subprocess.run(install_command, shell=True, check=True)
-        print(f"NVIDIA驱动 {nvidia_driver_dropdown.label} 安装完成。")
+        #print(f"NVIDIA驱动 {nvidia_driver_dropdown.label} 安装完成。")
     print(f"请在自己的ssh界面上执行 source /root/.bashrc，或者打开新的ssh界面")
-# 将函数绑定到按钮上
-#install_button.on_click(install_cuda_and_driver)
-
-# 显示控件
-#display(cuda_version_dropdown, nvidia_driver_dropdown, download_rule_dropdown, install_button)
-
